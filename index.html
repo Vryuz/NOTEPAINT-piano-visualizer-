@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NotePaint - Generative Watercolor Piano Visualizer</title>
+  <meta name="description" content="A generative watercolor painting experience driven by the live sound of piano notes. Deep bass creates heavy indigo swirls, high treble triggers bright pink, cyan and gold capillary splatters.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=7">
+</head>
+<body>
+  <!-- SVG Paper Shading Filters -->
+  <svg class="svg-filters" xmlns="http://www.w3.org/2000/svg">
+    <!-- Cold Press Filter (Default) -->
+    <filter id="paper-cold-press" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="4" result="noise" />
+      <feDiffuseLighting in="noise" lighting-color="#fff" surfaceScale="1.4" result="light">
+        <feDistantLight azimuth="50" elevation="55" />
+      </feDiffuseLighting>
+      <feBlend mode="multiply" in="SourceGraphic" in2="light" result="blend" />
+    </filter>
+
+    <!-- Hot Press Filter (Smooth) -->
+    <filter id="paper-hot-press" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.07" numOctaves="3" result="noise" />
+      <feDiffuseLighting in="noise" lighting-color="#fff" surfaceScale="0.6" result="light">
+        <feDistantLight azimuth="50" elevation="65" />
+      </feDiffuseLighting>
+      <feBlend mode="multiply" in="SourceGraphic" in2="light" result="blend" />
+    </filter>
+
+    <!-- Rough Filter (Coarse) -->
+    <filter id="paper-rough" x="0%" y="0%" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.02" numOctaves="5" result="noise" />
+      <feDiffuseLighting in="noise" lighting-color="#ffe" surfaceScale="2.5" result="light">
+        <feDistantLight azimuth="45" elevation="45" />
+      </feDiffuseLighting>
+      <feBlend mode="multiply" in="SourceGraphic" in2="light" result="blend" />
+    </filter>
+  </svg>
+
+  <!-- Main Canvas Wrapper with SVG filter applied via CSS -->
+  <div id="canvas-container" class="filter-cold-press">
+    <canvas id="fluid-canvas"></canvas>
+    <!-- Paper texture background color base -->
+    <div class="paper-bg"></div>
+  </div>
+
+  <!-- Full-screen Tap-to-Start Splash -->
+  <div id="start-splash">
+    <h1>NotePaint</h1>
+    <p>Tap Anywhere to Start</p>
+    <div class="mic-hint">Uses microphone to generate watercolours</div>
+  </div>
+
+  <!-- Top left minimalist title and status -->
+  <header id="header-overlay">
+    <div class="logo">NotePaint</div>
+    <div class="status-indicator">
+      <span class="pulse-dot warning"></span>
+      <span id="status-text">Click to Start</span>
+    </div>
+  </header>
+
+  <!-- Top Right controls toggle (Matching Strumsurfer) -->
+  <div id="top-right-controls-wrapper">
+    <button id="controls-toggle-btn">Controls</button>
+  </div>
+
+  <!-- Floating Settings Panel (Slides in from top right) -->
+  <div id="settings-panel" class="hidden">
+    <h3>Simulation Settings</h3>
+    
+    <!-- Mic Sensitivity -->
+    <div class="setting-item">
+      <label>Mic Sensitivity</label>
+      <div class="slider-row">
+        <input type="range" id="sensitivity-slider" min="0.1" max="3.0" step="0.1" value="1.2">
+        <span id="sensitivity-val">Medium</span>
+      </div>
+    </div>
+
+    <!-- Palette Presets -->
+    <div class="setting-item">
+      <label>Color Palette</label>
+      <div class="btn-grid palette-options">
+        <button class="palette-option active" data-palette="aether">Aether</button>
+        <button class="palette-option" data-palette="sunset">Sunset</button>
+        <button class="palette-option" data-palette="oceanic">Oceanic</button>
+        <button class="palette-option" data-palette="meadow">Meadow</button>
+      </div>
+    </div>
+
+    <!-- Bleed Rate -->
+    <div class="setting-item">
+      <label>Paint Bleed Rate</label>
+      <div class="btn-group bleed-options">
+        <button class="bleed-option active" data-bleed="medium">Normal</button>
+        <button class="bleed-option" data-bleed="slow">Slow</button>
+        <button class="bleed-option" data-bleed="fast">Fast</button>
+      </div>
+    </div>
+
+    <!-- Gravity Vector -->
+    <div class="setting-item">
+      <label>Flow Direction</label>
+      <div class="btn-group gravity-options">
+        <button class="gravity-option active" data-gravity="up">Up</button>
+        <button class="gravity-option" data-gravity="down">Down</button>
+        <button class="gravity-option" data-gravity="left">Left</button>
+        <button class="gravity-option" data-gravity="right">Right</button>
+        <button class="gravity-option" data-gravity="zero">Zero-G</button>
+      </div>
+    </div>
+
+    <!-- Paper Texture -->
+    <div class="setting-item">
+      <label>Paper Texture</label>
+      <div class="btn-group texture-options">
+        <button class="texture-option" data-texture="hot-press">Smooth</button>
+        <button class="texture-option active" data-texture="cold-press">Medium</button>
+        <button class="texture-option" data-texture="rough">Rough</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Left Live Waveform Visualizer -->
+  <div id="waveform-wrapper">
+    <canvas id="waveform-canvas" width="180" height="42"></canvas>
+  </div>
+
+  <!-- Bottom Center Keyboard / Touch Piano -->
+  <div id="keyboard-guide">
+    <!-- Desktop: text hint (hidden on touch) -->
+    <span class="desktop-hint">Press keys A-S-D-F-G-H-J-K to play</span>
+
+    <!-- Mobile / tablet: on-screen piano (hidden on desktop) -->
+    <div id="touch-piano">
+      <div class="piano-row white-keys">
+        <button class="piano-key white" data-freq="261.63" data-label="C4">C</button>
+        <button class="piano-key white" data-freq="293.66" data-label="D4">D</button>
+        <button class="piano-key white" data-freq="329.63" data-label="E4">E</button>
+        <button class="piano-key white" data-freq="349.23" data-label="F4">F</button>
+        <button class="piano-key white" data-freq="392.00" data-label="G4">G</button>
+        <button class="piano-key white" data-freq="440.00" data-label="A4">A</button>
+        <button class="piano-key white" data-freq="493.88" data-label="B4">B</button>
+        <button class="piano-key white" data-freq="523.25" data-label="C5">C</button>
+        <button class="piano-key white" data-freq="587.33" data-label="D5">D</button>
+        <button class="piano-key white" data-freq="659.25" data-label="E5">E</button>
+      </div>
+      <div class="piano-row black-keys">
+        <button class="piano-key black" data-freq="277.18" style="left:6.5%">C#</button>
+        <button class="piano-key black" data-freq="311.13" style="left:16.5%">D#</button>
+        <button class="piano-key black" data-freq="369.99" style="left:36.5%">F#</button>
+        <button class="piano-key black" data-freq="415.30" style="left:46.5%">G#</button>
+        <button class="piano-key black" data-freq="466.16" style="left:56.5%">A#</button>
+        <button class="piano-key black" data-freq="554.37" style="left:76.5%">C#</button>
+        <button class="piano-key black" data-freq="622.25" style="left:86.5%">D#</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Center Navigation Bar -->
+  <div id="bottom-navigation-wrapper">
+    <button id="nav-back-btn" class="nav-btn">◁ Back</button>
+    <button id="nav-new-btn" class="nav-btn">◯ New Sheet</button>
+    <button id="nav-save-btn" class="nav-btn">↓ Save</button>
+  </div>
+
+  <!-- Player View (Picture-in-Picture window) -->
+  <div id="pip-container" class="draggable">
+    <div class="pip-header">
+      <span class="pip-title">Player View</span>
+      <div class="pip-controls">
+        <button id="pip-minimize-btn" title="Minimize / Expand">—</button>
+        <button id="pip-toggle-source" title="Toggle Webcam / Visualizer">
+          <svg class="icon" viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 16H5V8h9v8z"/></svg>
+        </button>
+        <span class="pip-drag-handle">::</span>
+      </div>
+    </div>
+    <div class="pip-body">
+      <!-- Fallback canvas animation -->
+      <canvas id="pip-visualizer-canvas"></canvas>
+      <!-- Webcam Video element -->
+      <video id="pip-webcam" autoplay playsinline muted></video>
+      <div id="pip-watermark">Webcam Off</div>
+    </div>
+  </div>
+
+  <!-- Code Script Files with Cache Busters -->
+  <script src="webgl-fluid.js?v=29"></script>
+  <script src="audio.js?v=29"></script>
+  <script src="pip.js?v=29"></script>
+  <script src="app.js?v=29"></script>
+</body>
+</html>

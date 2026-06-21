@@ -1,5 +1,7 @@
 # NotePaint 🎨🎹
 
+**[🌐 Play the Live Website Here!](https://varun.github.io/notepaintbyvarun)**
+
 A generative watercolour physics simulation driven entirely by the live sound of a piano. 
 
 Play a real piano into your microphone (or use the built-in touch keyboard) and watch as musical notes are translated into vivid, organic watercolour splatters that bleed into digital paper in real-time.

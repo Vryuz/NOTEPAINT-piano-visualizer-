@@ -1,6 +1,6 @@
 # NotePaint 🎨🎹
 
-**[🌐 Play the Live Website Here!](https://varun.github.io/notepaintbyvarun)**
+**[🌐 Play the Live Website Here!]([https://varun.github.io/notepaintbyvarun](https://vryuz.github.io/NOTEPAINT-piano-visualizer-/))**
 
 A generative watercolour physics simulation driven entirely by the live sound of a piano. 
 
